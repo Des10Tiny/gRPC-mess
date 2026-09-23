@@ -5,6 +5,7 @@
 #include <grpcpp/grpcpp.h>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <string>
 #include <vector>
@@ -35,8 +36,8 @@ struct Message {
 };
 
 class ClientQueue {
-    std::mutex mtx_;
     std::queue<Message> messages_;
+    std::mutex mtx_;
     std::condition_variable cv_;
 
 public:
@@ -49,9 +50,14 @@ public:
         cv_.notify_one();
     }
 
-    Message WaitAndPop() {
+    std::optional<Message> WaitAndPop(std::chrono::milliseconds timeout = std::chrono::seconds(1)) {
         std::unique_lock lock(mtx_);
-        cv_.wait(lock, [&] { return !messages_.empty(); });
+
+        bool have_message = cv_.wait_for(lock, timeout, [&] { return !messages_.empty(); });
+
+        if (!have_message) {
+            return std::nullopt;
+        }
 
         Message msg = std::move(messages_.front());
         messages_.pop();
@@ -93,10 +99,42 @@ public:
     }
 
     Status ReadMessages(
-        [[maybe_unused]] ServerContext* context,
+        ServerContext* context,
         [[maybe_unused]] const google::protobuf::Empty* request,
-        [[maybe_unused]] ServerWriter<mes_grpc::ServerMessageResponse>* writer
+        ServerWriter<mes_grpc::ServerMessageResponse>* writer
     ) override {
+        std::shared_ptr<ClientQueue> current_queue = std::make_shared<ClientQueue>();
+
+        {
+            std::lock_guard global_lock(clients_mtx_);
+            clients_.push_back(current_queue);
+        }
+
+        while (!context->IsCancelled()) {
+            std::optional<Message> new_message = current_queue->WaitAndPop();
+
+            if (!new_message.has_value()) {
+                continue;
+            }
+
+            mes_grpc::ServerMessageResponse new_message_proto;
+
+            new_message_proto.set_author(new_message->author_);
+            new_message_proto.set_text(new_message->text_);
+            *new_message_proto.mutable_sendtime() = new_message->time_;
+
+            if (!writer->Write(new_message_proto)) {
+                break;
+            }
+        }
+
+        {
+            std::lock_guard global_lock(clients_mtx_);
+            clients_.erase(
+                std::remove(clients_.begin(), clients_.end(), current_queue), clients_.end()
+            );
+        }
+
         return Status::OK;
     }
 
