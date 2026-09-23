@@ -142,3 +142,25 @@ private:
     std::mutex clients_mtx_;
     std::vector<std::shared_ptr<ClientQueue>> clients_;
 };
+
+void RunServer() {
+    const char* port_env = std::getenv("MESSENGER_SERVER_PORT");
+    std::string port = port_env ? port_env : "51075";
+
+    std::string server_address = "0.0.0.0:" + port;
+
+    MessengerService service;
+
+    ServerBuilder builder;
+    builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+    builder.RegisterService(&service);
+
+    std::unique_ptr<Server> server(builder.BuildAndStart());
+
+    server->Wait();
+}
+
+int main() {
+    RunServer();
+    return 0;
+}

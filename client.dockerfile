@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     build-essential cmake git \
     protobuf-compiler-grpc libgrpc++-dev libprotobuf-dev \
-    nlohmann-json3-dev
+    nlohmann-json3-dev libabsl-dev
 
 WORKDIR /app
 COPY . .
@@ -23,7 +23,5 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY --from=builder /app/build/messenger_client /app/messenger_client
-
-EXPOSE 8080
 
 CMD ["/app/messenger_client"]
