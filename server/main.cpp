@@ -83,7 +83,13 @@ public:
         const mes_grpc::SendMessageRequest* request,
         mes_grpc::TimeResponse* response
     ) override {
-        auto time_for_curr_message = google::protobuf::util::TimeUtil::GetCurrentTime();
+        auto time_with_nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                   std::chrono::system_clock::now().time_since_epoch()
+        )
+                                   .count();
+
+        auto time_for_curr_message =
+            google::protobuf::util::TimeUtil::NanosecondsToTimestamp(time_with_nanos);
         *response->mutable_sendtime() = time_for_curr_message;
 
         Message curr_message = Message(request->author(), request->text(), time_for_curr_message);
