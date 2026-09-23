@@ -50,7 +50,7 @@ add_library(messenger_proto STATIC
 )
 target_include_directories(messenger_proto PUBLIC ${PROTO_GEN_DIR})
 
-target_link_libraries(messenger_proto PUBLIC protobuf grpc++)
+target_link_libraries(messenger_proto PUBLIC protobuf grpc++ grpc gpr absl_synchronization)
 
 
 add_executable(messenger_server server/main.cpp)
