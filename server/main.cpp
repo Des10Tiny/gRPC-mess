@@ -74,9 +74,21 @@ class MessengerService final : public mes_grpc::MessengerServer::Service {
 public:
     Status SendMessage(
         [[maybe_unused]] ServerContext* context,
-        [[maybe_unused]] const mes_grpc::SendMessageRequest* request,
-        [[maybe_unused]] mes_grpc::TimeResponse* response
+        const mes_grpc::SendMessageRequest* request,
+        mes_grpc::TimeResponse* response
     ) override {
+        auto time_for_curr_message = google::protobuf::util::TimeUtil::GetCurrentTime();
+        *response->mutable_sendtime() = time_for_curr_message;
+
+        Message curr_message = Message(request->author(), request->text(), time_for_curr_message);
+        {
+            std::lock_guard global_lock(clients_mtx_);
+
+            for (const std::shared_ptr<ClientQueue>& it : clients_) {
+                it->Push(curr_message);
+            }
+        }
+
         return Status::OK;
     }
 
