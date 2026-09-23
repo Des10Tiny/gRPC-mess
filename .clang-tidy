@@ -1,0 +1,71 @@
+---
+Checks: >
+  -*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  cppcoreguidelines-avoid-goto,
+  cppcoreguidelines-pro-type-const-cast,
+  modernize-replace-random-shuffle,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-nodiscard,
+  modernize-use-equals-default,
+  performance-*,
+  readability-braces-around-statements,
+  readability-container-size-empty,
+  readability-redundant-control-flow,
+  readability-redundant-string-init,
+  readability-identifier-naming,
+  readability-non-const-parameter,
+  readability-redundant-declaration,
+  readability-make-member-function-const,
+  google-build-using-namespace,
+  google-readability-casting,
+  misc-unused-parameters,
+  misc-unused-alias-decls,
+  misc-const-correctness
+
+HeaderFilterRegex: '\.(h|hpp)$'
+WarningsAsErrors: "*"
+CheckOptions:
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: "std::shared_ptr;std::unique_ptr"
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypedefIgnoredRegexp
+    value: (allocator_type|size_type|key_type|value_type|mapped_type|difference_type|pointer|const_pointer|reference|const_reference|iterator_category|const_iterator|iterator|reverse_iterator|const_reverse_iterator|key_compare)
+  - key: readability-identifier-naming.TypeAliasCase
+    value: CamelCase
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: "_"
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.GlobalConstantPrefix
+    value: k
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.StaticConstantPrefix
+    value: k
+  - key: readability-identifier-naming.StaticConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstexprVariablePrefix
+    value: k
+  - key: google-runtime-int.TypeSuffix
+    value: _t

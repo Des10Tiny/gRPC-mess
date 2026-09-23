@@ -1,0 +1,11 @@
+build/
+build_sanitize
+*.pdf
+.DS_Store
+*.out
+*.out.dSYM/
+.cache/
+compile_commands.json
+Testing/
+out/
+build_linux
