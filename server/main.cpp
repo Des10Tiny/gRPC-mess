@@ -1,6 +1,7 @@
 #include "messenger.grpc.pb.h"
 
 #include <condition_variable>
+#include <cstdlib>
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/grpcpp.h>
 #include <memory>
