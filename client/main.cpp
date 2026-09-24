@@ -125,7 +125,8 @@ void RunServer() {
     httplib::Server svr;
 
     svr.Post(
-        "/sendMessage", [&app_state](const httplib::Request& request, httplib::Response& response) {
+        "/sendMessage",
+        [&app_state](const httplib::Request& request, httplib::Response& response) {
             app_state.SendMessage(request, response);
         }
     );
