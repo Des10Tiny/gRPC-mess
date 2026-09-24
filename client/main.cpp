@@ -20,7 +20,15 @@ class ClientState {
 public:
     ClientState(std::unique_ptr<mes_grpc::MessengerServer::Stub> stub)
         : stub_(std::move(stub)) {
-        StartListenServer();
+        reader_thread_ = std::thread([this]() { this->ReaderThreadHelper(); });
+    }
+
+    ~ClientState() {
+        reader_context_.TryCancel();
+
+        if (reader_thread_.joinable()) {
+            reader_thread_.join();
+        }
     }
 
     void SendMessage(const httplib::Request& request, httplib::Response& response) {
@@ -100,14 +108,11 @@ private:
         }
     }
 
-    void StartListenServer() {
-        std::thread t([this]() { this->ReaderThreadHelper(); });
-        t.detach();
-    }
-
     std::vector<mes_grpc::ServerMessageResponse> buffer_;
     std::mutex mtx_;
     std::unique_ptr<mes_grpc::MessengerServer::Stub> stub_;
+    grpc::ClientContext reader_context_;
+    std::thread reader_thread_;
 };
 
 void RunServer() {
@@ -125,8 +130,7 @@ void RunServer() {
     httplib::Server svr;
 
     svr.Post(
-        "/sendMessage",
-        [&app_state](const httplib::Request& request, httplib::Response& response) {
+        "/sendMessage", [&app_state](const httplib::Request& request, httplib::Response& response) {
             app_state.SendMessage(request, response);
         }
     );
