@@ -10,7 +10,6 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <stdexcept>
 #include <string>
 #include <thread>
 #include <utility>
@@ -37,7 +36,14 @@ public:
 
         ::mes_grpc::TimeResponse time_response;
 
-        stub_->SendMessage(&context, send_message, &time_response);
+        auto status = stub_->SendMessage(&context, send_message, &time_response);
+
+        if (!status.ok()) {
+            response.status = 500;
+            response.set_content("gRPC Error", "text/plain");
+
+            return;
+        }
 
         auto answer_time = google::protobuf::util::TimeUtil::ToString(time_response.sendtime());
 
@@ -47,13 +53,30 @@ public:
         response.set_content(our_answer.dump(), "application/json");
     }
 
-    void GetAndFlushMessages(const httplib::Request& request, httplib::Response& response) {
+    void GetAndFlushMessages(
+        [[maybe_unused]] const httplib::Request& request, httplib::Response& response
+    ) {
         std::vector<mes_grpc::ServerMessageResponse> local_buffer_to_ans;
 
         {
             std::lock_guard lock(mtx_);
             local_buffer_to_ans = std::move(buffer_);
         }
+
+        nlohmann::json arr_to_send = nlohmann::json::array();
+
+        for (auto& one_message_it : local_buffer_to_ans) {
+            auto one_message = nlohmann::json();
+
+            one_message["author"] = std::move(*one_message_it.mutable_author());
+            one_message["text"] = std::move(*one_message_it.mutable_text());
+            one_message["sendTime"] =
+                google::protobuf::util::TimeUtil::ToString(one_message_it.sendtime());
+
+            arr_to_send.push_back(one_message);
+        }
+
+        response.set_content(arr_to_send.dump(), "application/json");
     }
 
 private:
@@ -82,14 +105,11 @@ private:
 };
 
 void RunServer() {
-    const char* server_addr = std::getenv("MESSENGER_SERVER_ADDR");
-    const char* http_port = std::getenv("MESSENGER_HTTP_PORT");
+    const char* env_addr = std::getenv("MESSENGER_SERVER_ADDR");
+    const char* server_addr = env_addr ? env_addr : "localhost:51075";
 
-    if (!server_addr || !http_port) {
-        throw std::runtime_error("MESSENGER_SERVER_ADDR or MESSENGER_HTTP_PORT not provided");
-    }
-
-    [[maybe_unused]] std::string str_server_addr = "0.0.0.0:" + std::string(server_addr);
+    const char* env_port = std::getenv("MESSENGER_HTTP_PORT");
+    const char* http_port = env_port ? env_port : "8080";
 
     auto channel = grpc::CreateChannel(server_addr, grpc::InsecureChannelCredentials());
     auto pointer_stub = mes_grpc::MessengerServer::NewStub(channel);
@@ -110,18 +130,15 @@ void RunServer() {
         }
     );
 
-    svr.listen("0.0.0.0", static_cast<int>(*http_port));
+    svr.listen("0.0.0.0", std::stoi(http_port));
 }
 
 int main() {
     try {
         RunServer();
-    } catch (const std::exception& e) {
-        std::cerr << e.what();
-        return 1;
     } catch (...) {
         std::cerr << "Unkown error";
-        return 2;
+        return 1;
     }
 
     return 0;
