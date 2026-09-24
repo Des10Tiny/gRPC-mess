@@ -3,6 +3,7 @@
 #include "messenger.pb.h"
 #include "nlohmann/json.hpp"
 
+#include <chrono>
 #include <cstdlib>
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/client_context.h>
@@ -29,6 +30,10 @@ public:
         std::string text = parsed_result["text"].get<std::string>();
 
         grpc::ClientContext context;
+        context.set_wait_for_ready(true);
+
+        auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(5);
+        context.set_deadline(deadline);
 
         mes_grpc::SendMessageRequest send_message;
         send_message.set_author(std::move(author));
@@ -82,6 +87,7 @@ public:
 private:
     void ReaderThreadHelper() {
         grpc::ClientContext context;
+        context.set_wait_for_ready(true);
 
         auto reader_pipe = stub_->ReadMessages(&context, ::google::protobuf::Empty{});
 
